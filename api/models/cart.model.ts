@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../../config/database";
-import { time } from "console";
 
 const Cart = sequelize.define("Cart", {
   cartID: {

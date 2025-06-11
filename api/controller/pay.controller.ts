@@ -13,8 +13,8 @@ export const payment = async (req: Request, res: Response): Promise<void> => {
   var secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
   var orderInfo = 'pay with MoMo';
   var partnerCode = 'MOMO';
-  var redirectUrl = `https://b30c-2405-4802-219-4670-ad17-b1a7-e0eb-9fc3.ngrok-free.app/success/${userID}`;
-  var ipnUrl = 'https://14c7-2405-4802-219-4670-ad17-b1a7-e0eb-9fc3.ngrok-free.app/api/pays/callback';
+  var redirectUrl = `https://6be7-2405-4802-4b4-c630-d499-bd56-95e-6467.ngrok-free.app/success/${userID}`;
+  var ipnUrl = 'https://d8ef-2405-4802-4b4-c630-d499-bd56-95e-6467.ngrok-free.app/api/pays/callback';
   var requestType = "payWithMethod";
   var amount = price;
   var orderId = id + "-" + partnerCode + new Date().getTime();
