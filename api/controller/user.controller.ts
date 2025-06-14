@@ -115,3 +115,30 @@ export const delUser = async (req: Request, res: Response) => {
   })
   res.json({ code: 200 });
 }
+//Đổi mật khẩu: [POST] /api/user/changepass
+export const change = async (req: Request, res: Response) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  const newpass = req.body.newpass;
+
+  const user = await User.findOne({
+    where: {
+      userName: username,
+      pass: password
+    }
+  })
+  console.log(newpass);
+  if(!user){
+    res.json({
+      code: 400,
+      message: "Username or Password is incorrect!"
+    })
+  }
+  await user.update({
+    pass: newpass
+  })
+  res.json({
+    code: 200,
+    message: "Change Password Successfull!"
+  })
+}
