@@ -1,14 +1,24 @@
 import axios from 'axios';
-import crypto from 'crypto';
+// import crypto from 'crypto';
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
+import CryptoJS from 'crypto-js';
+import moment from 'moment';
 import { Request, Response } from 'express';
 import Orders from '../models/order.model';
 import Tours from '../models/tours.model';
 
 dotenv.config();
 
-export const sendSuccessEmail = async (email: String, tourName: string, quantity: number, date: String) => {
+const config = {
+  app_id: "2553",
+  key1: "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL",
+  key2: "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz",
+  endpoint: "https://sb-openapi.zalopay.vn/v2/create"
+};
+
+//gửi mail
+export const sendSuccessEmail = async (email: String, tourName: string, quantity: number, date: String, name: String, place: String) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -22,11 +32,14 @@ export const sendSuccessEmail = async (email: String, tourName: string, quantity
     to: email,
     subject: '🎉 Đặt tour thành công!',
     html: `
-      <h3>Chúc mừng bạn đã đặt tours thành công!</h3>
-      <p><strong>Tour:</strong> ${tourName}</p>
-      <p><strong>Số lượng:</strong> ${quantity}</p>
-      <p><strong>Thời gian khởi hành:</strong> ${date}</p>
-      <p>Chúc bạn có một chuyến đi thật vui vẻ!</p>
+        <h3 style="color: white; font-size: 20px; font-weight: 700; text-align: center; background: green; border-radius: 10px; padding: 10px 0;"}>Chúc mừng bạn đã đặt tours thành công!</h3>
+        <p style="font-size: 16px; color: #555555; ">Dear:<span style="color: green; font-weight: 600;"> ${name}</span></p>
+        <p style="font-size: 16px; color: #555555;"><span style="color: #0396FF;">Sky Tour</span> rất vui vì bạn đã tin tưởng và lựa chọn sử dụng dịch vụ đặt tour của chúng tôi, sau đây là các thông tin quan trọng về tour mà bạn đã đặt:</p>
+        <p style="font-size: 16px;color: #555555">Tên tour:<strong style="font-weight: 600; color: #000;"> ${tourName}</strong></p>
+        <p style="font-size: 16px;color: #555555">Số lượng vé:<strong style="font-weight: 600; color: #000;"> ${quantity}</strong > </p>
+        <p style="font-size: 16px;color: #555555">Thời gian khởi hành:<strong style="font-weight: 600; color: #000;"> ${date}</strong> </p>
+        <p style="font-size: 16px;color: #555555">Địa điểm khởi hành:<strong style="font-weight: 600; color: #000;"> ${place}</strong > </p>
+        <p style="font-size: 16px;color: #555555">Chúc bạn có một chuyến đi thật vui vẻ! Nếu gặp vấn đề gì về dịch vụ, xin vui lòng liên hệ với chúng tôi sớm nhất để được giải quyết nhanh chóng, xin trân trọng cảm ơn.</p>
     `
   };
 
@@ -35,113 +48,111 @@ export const sendSuccessEmail = async (email: String, tourName: string, quantity
 
 //[POST] /api/pays/payment
 export const payment = async (req: Request, res: Response): Promise<void> => {
-  const price = req.body.price;
+  const price = parseInt(req.body.price);
   const id = req.body.orderID;
   const tourID = req.body.tourID;
   const userID = req.body.userID;
   const quantity = req.body.quantity;
-  const email = req.body.email;
-  const date = req.body.date;
 
-  var accessKey = 'F8BBA842ECF85';
-  var secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
-  var orderInfo = 'pay with MoMo';
-  var partnerCode = 'MOMO';
-  var redirectUrl = `https://dc02-123-17-148-53.ngrok-free.app/success/${userID}`;
-  var ipnUrl = 'https://1721-123-17-148-53.ngrok-free.app/api/pays/callback';
-  var requestType = "payWithMethod";
-  var amount = price;
-  var orderId = id + "-" + tourID + "-" + quantity + "-" + new Date().getTime();
-  var requestId = orderId;
-  var extraData = ' ';
-  var orderGroupId = ' ';
-  var autoCapture = true;
-  var lang = 'vi';
+  const embed_data = {
+    redirecturl: `https://e7a7-2405-4802-1cd4-7e0-c420-88b0-3a5e-9804.ngrok-free.app/success/${userID}`
+  };
 
-  // Tạo raw signature
-  var rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
+  const items = [{
+    orderID: id,
+    tourID,
+    quantity
+  }];
 
-  const signature = crypto
-    .createHmac('sha256', secretKey)
-    .update(rawSignature)
-    .digest('hex');
+  const transID = Math.floor(Math.random() * 1000000);
+  const order = {
+    app_id: config.app_id,
+    app_trans_id: `${moment().format('YYMMDD')}_${transID}`,
+    app_user: "user123",
+    app_time: Date.now(), // miliseconds
+    item: JSON.stringify(items),
+    embed_data: JSON.stringify(embed_data),
+    amount: price,
+    description: `SkyTour - Payment for the order #${transID}`,
+    bank_code: "",
+    callback_url: "https://dd48-2405-4802-1cd4-7e0-c420-88b0-3a5e-9804.ngrok-free.app/api/pays/callback"
+  };
 
-  const body = JSON.stringify({
-    partnerCode,
-    partnerName: "Test",
-    storeId: "MomoTestStore",
-    requestId,
-    amount,
-    orderId,
-    orderInfo,
-    redirectUrl,
-    ipnUrl,
-    lang,
-    requestType,
-    autoCapture,
-    extraData,
-    orderGroupId,
-    signature
-  });
+  const data = config.app_id + "|" + order.app_trans_id + "|" + order.app_user + "|" + order.amount + "|" + order.app_time + "|" + order.embed_data + "|" + order.item;
 
-  const options = {
-    method: "POST",
-    url: "https://test-payment.momo.vn/v2/gateway/api/create",
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body)
-    },
-    data: body
-  }
+  (order as any).mac = CryptoJS.HmacSHA256(data, config.key1).toString();
 
   try {
-    let result = await axios(options);
+    const result = await axios.post(config.endpoint, null, { params: order });
     res.status(200).json(result.data);
   } catch (error) {
-    res.status(500).json({
-      statusCode: 500,
-      message: "server error"
-    })
+    console.log(error.message);
   }
 };
+
 //[POST] /api/pays/callback
 export const callbackpay = async (req: Request, res: Response): Promise<void> => {
-  const orderIDPay = parseInt(req.body.orderId.split('-')[0]);
-  const tourID = parseInt(req.body.orderId.split('-')[1]);
-  const quantity = parseInt(req.body.orderId.split('-')[2]);
+  let result = {};
 
-  const checkPay = req.body.resultCode;
-  if (checkPay === 0) {
-    const order = await Orders.findOne({
-      where: {
-        id: orderIDPay
-      }
-    });
-    if (order) {
-      await order.update({
-        status: "active"
-      })
+  try {
+    const dataStr = req.body.data;
+    const reqMac = req.body.mac;
+    const mac = CryptoJS.HmacSHA256(dataStr, config.key2).toString();
+    const items = JSON.parse(JSON.parse(dataStr).item);
+    const orderID = parseInt(items[0].orderID);
+    const tourID = parseInt(items[0].tourID);
+    const quantity = parseInt(items[0].quantity);
+
+    // kiểm tra callback hợp lệ (đến từ ZaloPay server)
+    if (reqMac !== mac) {
+      // callback không hợp lệ
+      (result as any).return_code = -1;
+      (result as any).return_message = "mac not equal";
     }
-
-    const tour = await Tours.findOne({
-      where: {
-        id: tourID
+    else {
+      // thanh toán thành công
+      //cập nhật trạng thái cho đơn hàng
+      const order = await Orders.findOne({
+        where: {
+          id: orderID
+        }
+      })
+      if (order) {
+        await order.update({
+          status: "active"
+        })
       }
-    })
-
-    if (tour && order) {
-      const updateQuantity = (tour as any).stock - Number(quantity);
-      const email = (order as any).email;
-      const date = (order as any).date;
-
-      await tour.update({
-        stock: updateQuantity
+      const tour = await Tours.findOne({
+        where: {
+          id: tourID
+        }
       })
 
-      await sendSuccessEmail(email, (tour as any).title, quantity, date);
+      if (tour && order) {
+        const updateQuantity = (tour as any).stock - Number(quantity);
+        const email = (order as any).email;
+        const date = (order as any).date;
+        const name = (order as any).fullName;
+        const place = (tour as any).startPlace;
+
+        await tour.update({
+          stock: updateQuantity
+        })
+
+        await sendSuccessEmail(email, (tour as any).title, quantity, date, name, place);
+      }
+
+      let dataJson = JSON.parse(dataStr, (config as any).key2);
+      console.log("update order's status = success where app_trans_id =", dataJson["app_trans_id"]);
+
+      (result as any).return_code = 1;
+      (result as any).return_message = "success";
     }
+  } catch (ex) {
+    (result as any).return_code = 0; // ZaloPay server sẽ callback lại (tối đa 3 lần)
+    (result as any).return_message = ex.message;
   }
 
-
-  res.status(200).json(req.body)
-}
+  // thông báo kết quả cho ZaloPay server
+  res.json(result);
+};
