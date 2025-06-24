@@ -55,7 +55,7 @@ export const payment = async (req: Request, res: Response): Promise<void> => {
   const quantity = req.body.quantity;
 
   const embed_data = {
-    redirecturl: `https://e7a7-2405-4802-1cd4-7e0-c420-88b0-3a5e-9804.ngrok-free.app/success/${userID}`
+    redirecturl: `https://tour-du-lich-fe.onrender.com/success/${userID}`
   };
 
   const items = [{
