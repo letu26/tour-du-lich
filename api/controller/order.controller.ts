@@ -19,10 +19,12 @@ export const postOrder = async (req: Request, res: Response) => {
       totalPrice: item.price,
       date: item.date + " " + item.time,
       title: item.title,
-      userID: data.uID
+      userID: data.uID,
+      tourID: item.tourID
     };
 
     await Orders.create(dataOrder);
+    
   }
   res.json({code: 200})
 }

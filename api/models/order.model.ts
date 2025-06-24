@@ -42,6 +42,9 @@ const Orders = sequelize.define("Orders", {
   userID: {
     type: DataTypes.INTEGER
   },
+  tourID: {
+    type: DataTypes.INTEGER
+  },
   deleted: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,

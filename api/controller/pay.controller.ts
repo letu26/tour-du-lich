@@ -1,23 +1,57 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 import { Request, Response } from 'express';
 import Orders from '../models/order.model';
+import Tours from '../models/tours.model';
+
+dotenv.config();
+
+export const sendSuccessEmail = async (email: String, tourName: string, quantity: number, date: String) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.USER,
+      pass: process.env.PASSWORD
+    }
+  });
+
+  const mailOptions = {
+    from: process.env.USER,
+    to: email,
+    subject: '🎉 Đặt tour thành công!',
+    html: `
+      <h3>Chúc mừng bạn đã đặt tours thành công!</h3>
+      <p><strong>Tour:</strong> ${tourName}</p>
+      <p><strong>Số lượng:</strong> ${quantity}</p>
+      <p><strong>Thời gian khởi hành:</strong> ${date}</p>
+      <p>Chúc bạn có một chuyến đi thật vui vẻ!</p>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
 
 //[POST] /api/pays/payment
 export const payment = async (req: Request, res: Response): Promise<void> => {
   const price = req.body.price;
   const id = req.body.orderID;
+  const tourID = req.body.tourID;
   const userID = req.body.userID;
+  const quantity = req.body.quantity;
+  const email = req.body.email;
+  const date = req.body.date;
 
   var accessKey = 'F8BBA842ECF85';
   var secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
   var orderInfo = 'pay with MoMo';
   var partnerCode = 'MOMO';
-  var redirectUrl = `https://ef21-42-114-162-157.ngrok-free.app /success/${userID}`;
-  var ipnUrl = 'https://ef21-42-114-162-157.ngrok-free.app/api/pays/callback';
+  var redirectUrl = `https://dc02-123-17-148-53.ngrok-free.app/success/${userID}`;
+  var ipnUrl = 'https://1721-123-17-148-53.ngrok-free.app/api/pays/callback';
   var requestType = "payWithMethod";
   var amount = price;
-  var orderId = id + "-" + partnerCode + new Date().getTime();
+  var orderId = id + "-" + tourID + "-" + quantity + "-" + new Date().getTime();
   var requestId = orderId;
   var extraData = ' ';
   var orderGroupId = ' ';
@@ -73,20 +107,41 @@ export const payment = async (req: Request, res: Response): Promise<void> => {
 //[POST] /api/pays/callback
 export const callbackpay = async (req: Request, res: Response): Promise<void> => {
   const orderIDPay = parseInt(req.body.orderId.split('-')[0]);
+  const tourID = parseInt(req.body.orderId.split('-')[1]);
+  const quantity = parseInt(req.body.orderId.split('-')[2]);
+
   const checkPay = req.body.resultCode;
-  if(checkPay === 0){
+  if (checkPay === 0) {
     const order = await Orders.findOne({
       where: {
         id: orderIDPay
       }
     });
-    if(order){
+    if (order) {
       await order.update({
         status: "active"
       })
     }
+
+    const tour = await Tours.findOne({
+      where: {
+        id: tourID
+      }
+    })
+
+    if (tour && order) {
+      const updateQuantity = (tour as any).stock - Number(quantity);
+      const email = (order as any).email;
+      const date = (order as any).date;
+
+      await tour.update({
+        stock: updateQuantity
+      })
+
+      await sendSuccessEmail(email, (tour as any).title, quantity, date);
+    }
   }
-  
+
 
   res.status(200).json(req.body)
 }
